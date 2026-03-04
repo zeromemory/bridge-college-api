@@ -1,0 +1,934 @@
+{
+	"info": {
+		"name": "BCI Portal API — Stage 1",
+		"description": "Auth endpoints for BCI Portal.\n\nFolder 1 'Auth Flow' runs fully automated — no manual steps.\nFolder 2 'Authenticated Flow' requires a verified email (manual step).\n\nMake sure backend is running: php artisan serve --port=8001",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:8001", "type": "string" },
+		{ "key": "api_url", "value": "http://localhost:8001/api/v1", "type": "string" },
+		{ "key": "xsrf_token", "value": "", "type": "string" },
+		{ "key": "test_cnic", "value": "", "type": "string" },
+		{ "key": "test_email", "value": "", "type": "string" },
+		{ "key": "test_name", "value": "", "type": "string" },
+		{ "key": "test_mobile", "value": "", "type": "string" },
+		{ "key": "verified_cnic", "value": "", "type": "string" },
+		{ "key": "verified_password", "value": "", "type": "string" }
+	],
+	"item": [
+		{
+			"name": "Auth Flow (Automated — Run in Order)",
+			"item": [
+				{
+					"name": "1. Get CSRF Cookie",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var token = null;",
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) token = decodeURIComponent(match[1]);",
+									"    }",
+									"});",
+									"if (token) pm.collectionVariables.set('xsrf_token', token);",
+									"",
+									"pm.test('CSRF cookie received', function () {",
+									"    pm.expect(token).to.not.be.null;",
+									"    pm.expect(token.length).to.be.greaterThan(10);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"url": {
+							"raw": "{{base_url}}/sanctum/csrf-cookie",
+							"host": ["{{base_url}}"],
+							"path": ["sanctum", "csrf-cookie"]
+						}
+					}
+				},
+				{
+					"name": "2. Register — Success",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"var timestamp = Date.now();",
+									"var cnicNum = String(timestamp).slice(-13).padStart(13, '3');",
+									"var cnic = cnicNum.slice(0,5) + '-' + cnicNum.slice(5,12) + '-' + cnicNum.slice(12,13);",
+									"var mobile = '03' + String(timestamp).slice(-9);",
+									"pm.collectionVariables.set('test_cnic', cnic);",
+									"pm.collectionVariables.set('test_email', 'student' + timestamp + '@test.com');",
+									"pm.collectionVariables.set('test_name', 'Test Student');",
+									"pm.collectionVariables.set('test_mobile', mobile);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"    }",
+									"});",
+									"",
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 201 Created', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('success is true', function () {",
+									"    pm.expect(res.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test('Has user data with all fields', function () {",
+									"    pm.expect(res.data.user).to.have.property('id');",
+									"    pm.expect(res.data.user).to.have.property('name');",
+									"    pm.expect(res.data.user).to.have.property('email');",
+									"    pm.expect(res.data.user).to.have.property('cnic');",
+									"    pm.expect(res.data.user).to.have.property('mobile');",
+									"    pm.expect(res.data.user).to.have.property('nationality');",
+									"    pm.expect(res.data.user.role).to.eql('student');",
+									"    pm.expect(res.data.user.nationality).to.eql('pakistani');",
+									"});",
+									"",
+									"pm.test('Has request_id', function () {",
+									"    pm.expect(res.request_id).to.be.a('string');",
+									"});",
+									"",
+									"pm.test('Message mentions verification', function () {",
+									"    pm.expect(res.message.toLowerCase()).to.include('verif');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{test_name}}\",\n    \"email\": \"{{test_email}}\",\n    \"cnic\": \"{{test_cnic}}\",\n    \"mobile\": \"{{test_mobile}}\",\n    \"nationality\": \"pakistani\",\n    \"password\": \"Password123!\",\n    \"password_confirmation\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/register",
+							"host": ["{{api_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "3. Register — Duplicate CNIC (expect 422)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"    }",
+									"});",
+									"",
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('success is false', function () {",
+									"    pm.expect(res.success).to.eql(false);",
+									"});",
+									"",
+									"pm.test('Has CNIC duplicate error', function () {",
+									"    pm.expect(res.errors.cnic[0]).to.include('already registered');",
+									"});",
+									"",
+									"pm.test('error_code is VALIDATION_ERROR', function () {",
+									"    pm.expect(res.error_code).to.eql('VALIDATION_ERROR');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Duplicate User\",\n    \"email\": \"dup@test.com\",\n    \"cnic\": \"{{test_cnic}}\",\n    \"mobile\": \"03001234567\",\n    \"nationality\": \"pakistani\",\n    \"password\": \"Password123!\",\n    \"password_confirmation\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/register",
+							"host": ["{{api_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "4. Register — Invalid CNIC (expect 422)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"    }",
+									"});",
+									"",
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('Has CNIC format error', function () {",
+									"    pm.expect(res.errors.cnic[0]).to.include('format');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Bad CNIC\",\n    \"email\": \"badcnic@test.com\",\n    \"cnic\": \"1234567890\",\n    \"mobile\": \"03001234567\",\n    \"nationality\": \"pakistani\",\n    \"password\": \"Password123!\",\n    \"password_confirmation\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/register",
+							"host": ["{{api_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "5. Login — Unverified Email (expect 403)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"    }",
+									"});",
+									"",
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 403', function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test('error_code is EMAIL_NOT_VERIFIED', function () {",
+									"    pm.expect(res.error_code).to.eql('EMAIL_NOT_VERIFIED');",
+									"});",
+									"",
+									"pm.test('Response includes email in data', function () {",
+									"    pm.expect(res.data).to.have.property('email');",
+									"    pm.expect(res.data.email).to.be.a('string');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cnic\": \"{{test_cnic}}\",\n    \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/login",
+							"host": ["{{api_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "6. Resend Verification Email",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('success is true', function () {",
+									"    pm.expect(res.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test('Has message', function () {",
+									"    pm.expect(res.message).to.be.a('string');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{test_email}}\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/email/resend",
+							"host": ["{{api_url}}"],
+							"path": ["email", "resend"]
+						}
+					}
+				},
+				{
+					"name": "7. Forgot Password",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('success is true', function () {",
+									"    pm.expect(res.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test('Returns success message (does not reveal if CNIC exists)', function () {",
+									"    pm.expect(res.message).to.be.a('string');",
+									"    pm.expect(res.message.length).to.be.greaterThan(5);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cnic\": \"{{test_cnic}}\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/forgot-password",
+							"host": ["{{api_url}}"],
+							"path": ["forgot-password"]
+						}
+					}
+				},
+				{
+					"name": "8. Login — Wrong Password (expect 422)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('success is false', function () {",
+									"    pm.expect(res.success).to.eql(false);",
+									"});",
+									"",
+									"pm.test('Has auth error', function () {",
+									"    pm.expect(res.errors).to.have.property('cnic');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cnic\": \"{{test_cnic}}\",\n    \"password\": \"WrongPassword!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/login",
+							"host": ["{{api_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "9. Register — Missing Fields (expect 422)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('Has errors for all required fields', function () {",
+									"    pm.expect(res.errors).to.have.property('name');",
+									"    pm.expect(res.errors).to.have.property('email');",
+									"    pm.expect(res.errors).to.have.property('cnic');",
+									"    pm.expect(res.errors).to.have.property('mobile');",
+									"    pm.expect(res.errors).to.have.property('nationality');",
+									"    pm.expect(res.errors).to.have.property('password');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{api_url}}/register",
+							"host": ["{{api_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "10. Register — Password Mismatch (expect 422)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('base_url') + '/sanctum/csrf-cookie',",
+									"    method: 'GET',",
+									"    header: { 'Origin': 'http://localhost:3000', 'Referer': 'http://localhost:3000/' }",
+									"}, function (err, res) {",
+									"    if (res) {",
+									"        res.headers.each(function(header) {",
+									"            if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"                var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"                if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"            }",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('Has password confirmation error', function () {",
+									"    pm.expect(res.errors).to.have.property('password');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Mismatch\",\n    \"email\": \"mismatch@test.com\",\n    \"cnic\": \"12345-1234567-1\",\n    \"mobile\": \"03001234567\",\n    \"nationality\": \"pakistani\",\n    \"password\": \"Password123!\",\n    \"password_confirmation\": \"Different!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/register",
+							"host": ["{{api_url}}"],
+							"path": ["register"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Authenticated Flow (Requires Verified Email)",
+			"description": "These tests require a user with a verified email.\n\nBefore running:\n1. Set 'verified_cnic' to a CNIC with verified email\n2. Set 'verified_password' to that user's password\n\nOr verify the test user's email manually, then use test_cnic.",
+			"item": [
+				{
+					"name": "A1. Get CSRF Cookie",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var token = null;",
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) token = decodeURIComponent(match[1]);",
+									"    }",
+									"});",
+									"if (token) pm.collectionVariables.set('xsrf_token', token);",
+									"",
+									"pm.test('CSRF cookie received', function () {",
+									"    pm.expect(token).to.not.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"url": {
+							"raw": "{{base_url}}/sanctum/csrf-cookie",
+							"host": ["{{base_url}}"],
+							"path": ["sanctum", "csrf-cookie"]
+						}
+					}
+				},
+				{
+					"name": "A2. Login — Success (verified user)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"    }",
+									"});",
+									"",
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('success is true', function () {",
+									"    pm.expect(res.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test('Has user data with all fields', function () {",
+									"    pm.expect(res.data.user).to.have.property('id');",
+									"    pm.expect(res.data.user).to.have.property('mobile');",
+									"    pm.expect(res.data.user).to.have.property('nationality');",
+									"    pm.expect(res.data.user).to.have.property('email_verified_at');",
+									"    pm.expect(res.data.user.role).to.eql('student');",
+									"});",
+									"",
+									"pm.test('Message is Login successful', function () {",
+									"    pm.expect(res.message).to.eql('Login successful.');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cnic\": \"{{verified_cnic}}\",\n    \"password\": \"{{verified_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/login",
+							"host": ["{{api_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "A3. Get User — Authenticated",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.response.headers.each(function(header) {",
+									"    if (header.key === 'Set-Cookie' || header.key === 'set-cookie') {",
+									"        var match = header.value.match(/XSRF-TOKEN=([^;]+)/);",
+									"        if (match) pm.collectionVariables.set('xsrf_token', decodeURIComponent(match[1]));",
+									"    }",
+									"});",
+									"",
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Has user data', function () {",
+									"    pm.expect(res.success).to.eql(true);",
+									"    pm.expect(res.data.user).to.have.property('id');",
+									"    pm.expect(res.data.user).to.have.property('name');",
+									"    pm.expect(res.data.user).to.have.property('cnic');",
+									"    pm.expect(res.data.user).to.have.property('mobile');",
+									"    pm.expect(res.data.user).to.have.property('nationality');",
+									"    pm.expect(res.data.user).to.have.property('email_verified_at');",
+									"});",
+									"",
+									"pm.test('User is active', function () {",
+									"    pm.expect(res.data.user.is_active).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"url": {
+							"raw": "{{api_url}}/user",
+							"host": ["{{api_url}}"],
+							"path": ["user"]
+						}
+					}
+				},
+				{
+					"name": "A4. Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var res = pm.response.json();",
+									"",
+									"pm.test('Status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('success is true', function () {",
+									"    pm.expect(res.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test('Message is correct', function () {",
+									"    pm.expect(res.message).to.eql('Logged out successfully.');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "X-XSRF-TOKEN", "value": "{{xsrf_token}}" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"url": {
+							"raw": "{{api_url}}/logout",
+							"host": ["{{api_url}}"],
+							"path": ["logout"]
+						}
+					}
+				},
+				{
+					"name": "A5. Get User — After Logout (expect 401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"var res = pm.response.json();",
+									"pm.test('Returns Unauthenticated', function () {",
+									"    pm.expect(res.message).to.include('Unauthenticated');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Origin", "value": "http://localhost:3000" },
+							{ "key": "Referer", "value": "http://localhost:3000/" }
+						],
+						"url": {
+							"raw": "{{api_url}}/user",
+							"host": ["{{api_url}}"],
+							"path": ["user"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
