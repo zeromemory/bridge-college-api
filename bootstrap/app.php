@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Configure Sanctum stateful middleware for API routes
         $middleware->statefulApi();
+
+        // Register middleware aliases
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Render validation errors in standard API format
