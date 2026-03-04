@@ -49,15 +49,19 @@ class AuthController extends Controller
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
 
         $user = Auth::user();
 
         if (! $user->hasVerifiedEmail()) {
             $email = $user->email;
             Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
 
             return $this->error(
                 message: 'Please verify your email address before logging in. Check your inbox for the verification link.',
@@ -69,8 +73,10 @@ class AuthController extends Controller
 
         if (! $user->is_active) {
             Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
 
             return $this->error(
                 message: 'Your account has been deactivated. Please contact support.',
@@ -89,8 +95,10 @@ class AuthController extends Controller
     {
         Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return $this->success(
             message: 'Logged out successfully.',
