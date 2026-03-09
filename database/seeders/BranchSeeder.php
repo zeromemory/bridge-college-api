@@ -67,7 +67,10 @@ class BranchSeeder extends Seeder
         ];
 
         foreach ($branches as $branch) {
-            Branch::create(array_merge($branch, ['is_active' => true]));
+            Branch::firstOrCreate(
+                ['name' => $branch['name']],
+                array_merge($branch, ['is_active' => true]),
+            );
         }
     }
 }

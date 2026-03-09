@@ -20,13 +20,15 @@ class ProgramSeeder extends Seeder
         ];
 
         foreach ($programs as $program) {
-            Program::create([
-                'name' => $program['name'],
-                'slug' => Str::slug($program['name']),
-                'level' => $program['level'],
-                'is_active' => true,
-                'sort_order' => $program['sort_order'],
-            ]);
+            Program::firstOrCreate(
+                ['slug' => Str::slug($program['name'])],
+                [
+                    'name' => $program['name'],
+                    'level' => $program['level'],
+                    'is_active' => true,
+                    'sort_order' => $program['sort_order'],
+                ],
+            );
         }
     }
 }
