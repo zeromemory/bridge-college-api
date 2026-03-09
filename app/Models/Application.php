@@ -24,6 +24,7 @@ class Application extends Model
         'reviewed_at',
         'reviewed_by',
         'admin_notes',
+        'fee_status',
     ];
 
     protected function casts(): array

@@ -42,6 +42,7 @@ Route::prefix('v1')->group(function () {
 
         // Admission wizard
         Route::post('/applications', [AdmissionController::class, 'store']);
+        Route::put('/applications/{id}', [AdmissionController::class, 'update']);
         Route::get('/applications/{id}', [AdmissionController::class, 'show']);
         Route::put('/applications/{id}/personal-details', [AdmissionController::class, 'updatePersonalDetails']);
         Route::put('/applications/{id}/extras', [AdmissionController::class, 'updateExtras']);
@@ -59,15 +60,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/applications/{id}', [AdminController::class, 'showApplication']);
             Route::post('/applications/{id}/accept', [AdminController::class, 'acceptApplication']);
             Route::post('/applications/{id}/reject', [AdminController::class, 'rejectApplication']);
-            Route::post('/applications/{id}/challan', [AdminController::class, 'generateChallan']);
+            Route::post('/applications/{id}/toggle-fee', [AdminController::class, 'toggleFeeStatus']);
+            Route::get('/documents/{id}/download', [AdminController::class, 'downloadDocument']);
 
             // Student management
             Route::get('/students', [AdminController::class, 'students']);
             Route::get('/students/{id}', [AdminController::class, 'showStudent']);
             Route::post('/students/{id}/toggle-status', [AdminController::class, 'toggleStudentStatus']);
-
-            // Fee management
-            Route::post('/challans/{id}/mark-paid', [AdminController::class, 'markChallanPaid']);
         });
     });
 });

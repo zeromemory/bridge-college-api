@@ -35,6 +35,21 @@ class AdmissionController extends Controller
         );
     }
 
+    public function update(CreateApplicationRequest $request, int $id): JsonResponse
+    {
+        $application = $this->findApplication($request, $id);
+
+        $request->user()->can('update', $application)
+            ?: abort(403, 'Unauthorized.');
+
+        $application->update($request->validated());
+
+        return $this->success(
+            data: ['application' => $application->load(['program', 'branch'])],
+            message: 'Application updated successfully.',
+        );
+    }
+
     public function show(Request $request, int $id): JsonResponse
     {
         $application = $this->findApplication($request, $id);

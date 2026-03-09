@@ -7,9 +7,12 @@ use App\Models\Application;
 use App\Models\FeeChallan;
 use App\Models\User;
 use App\Services\ChallanService;
+use App\Models\ApplicationDocument;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminController extends Controller
 {
@@ -109,7 +112,7 @@ class AdminController extends Controller
     {
         $application = Application::findOrFail($id);
 
-        if (! in_array($application->status, ['submitted', 'under_review'])) {
+        if (! $application->status === 'submitted') {
             return $this->error(
                 message: 'Only submitted or under-review applications can be accepted.',
                 errorCode: 'VALIDATION_ERROR',
@@ -138,7 +141,7 @@ class AdminController extends Controller
 
         $application = Application::findOrFail($id);
 
-        if (! in_array($application->status, ['submitted', 'under_review'])) {
+        if (! $application->status === 'submitted') {
             return $this->error(
                 message: 'Only submitted or under-review applications can be rejected.',
                 errorCode: 'VALIDATION_ERROR',
@@ -210,50 +213,33 @@ class AdminController extends Controller
         );
     }
 
-    // ── Fee Management ──
+    // ── Fee Management (Phase 1: simple toggle) ──
 
-    public function generateChallan(Request $request, int $id): JsonResponse
+    public function downloadDocument(int $id): StreamedResponse
     {
-        $request->validate([
-            'amount' => ['required', 'numeric', 'min:1'],
-            'due_date' => ['required', 'date', 'after:today'],
-        ]);
+        $document = ApplicationDocument::findOrFail($id);
 
-        $application = Application::findOrFail($id);
+        if (!Storage::disk('local')->exists($document->file_path)) {
+            abort(404, 'File not found.');
+        }
 
-        $challan = $this->challanService->generate(
-            $application,
-            $request->input('amount'),
-            $request->input('due_date'),
-        );
-
-        return $this->success(
-            data: ['challan' => $challan],
-            message: 'Fee challan generated successfully.',
-            status: 201,
+        return Storage::disk('local')->download(
+            $document->file_path,
+            $document->original_name,
+            ['Content-Type' => $document->mime_type],
         );
     }
 
-    public function markChallanPaid(Request $request, int $id): JsonResponse
+    public function toggleFeeStatus(int $id): JsonResponse
     {
-        $challan = FeeChallan::findOrFail($id);
+        $application = Application::findOrFail($id);
 
-        if ($challan->status === 'paid') {
-            return $this->error(
-                message: 'Challan is already paid.',
-                errorCode: 'VALIDATION_ERROR',
-                status: 422,
-            );
-        }
-
-        $challan = $this->challanService->markPaid(
-            $challan,
-            $request->input('payment_reference'),
-        );
+        $newStatus = $application->fee_status === 'paid' ? 'pending' : 'paid';
+        $application->update(['fee_status' => $newStatus]);
 
         return $this->success(
-            data: ['challan' => $challan],
-            message: 'Challan marked as paid.',
+            data: ['application' => $application],
+            message: $newStatus === 'paid' ? 'Fee marked as paid.' : 'Fee marked as unpaid.',
         );
     }
 }

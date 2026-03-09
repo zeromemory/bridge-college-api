@@ -55,7 +55,7 @@ class SeedE2eCommand extends Command
             'name' => 'E2E Admin',
             'cnic' => '35202-9999999-1',
             'email' => 'e2e-admin@test.com',
-            'password' => Hash::make('Admin1234!'),
+            'password' => Hash::make('Bci@Admin#2026!'),
             'role' => 'admin',
             'is_active' => true,
         ]);
@@ -181,7 +181,7 @@ class SeedE2eCommand extends Command
             ['Role', 'Email', 'Password'],
             [
                 ['Student', 'e2e-student@test.com', 'Test1234!'],
-                ['Admin', 'e2e-admin@test.com', 'Admin1234!'],
+                ['Admin', 'e2e-admin@test.com', 'Bci@Admin#2026!'],
             ]
         );
 
