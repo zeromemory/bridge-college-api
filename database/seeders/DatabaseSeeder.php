@@ -18,9 +18,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::factory()->admin()->create([
-            'name' => 'Admin User',
+            'name' => 'BCI Admin',
             'email' => 'admin@bridgecollegeinternational.com',
-            'cnic' => '35202-1234567-1',
+            'cnic' => '35202-9999999-1',
         ]);
 
         User::factory()->create([

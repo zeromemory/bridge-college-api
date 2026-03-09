@@ -15,14 +15,15 @@ use Illuminate\Support\Facades\Hash;
 
 class SeedE2eCommand extends Command
 {
-    protected $signature = 'e2e:seed {--force : Force the operation in production}';
+    protected $signature = 'e2e:seed';
 
-    protected $description = 'Reset the database and seed it with known E2E test data';
+    protected $description = 'Reset the database and seed it with known E2E test data (LOCAL ONLY — blocked in production)';
 
     public function handle(): int
     {
-        if (app()->isProduction() && ! $this->option('force')) {
-            $this->error('This command is destructive. Use --force to run in production.');
+        if (app()->isProduction()) {
+            $this->error('⛔ e2e:seed is BLOCKED in production. It wipes the entire database.');
+            $this->error('Use "php artisan db:seed-admin" to safely create admin user.');
 
             return self::FAILURE;
         }
