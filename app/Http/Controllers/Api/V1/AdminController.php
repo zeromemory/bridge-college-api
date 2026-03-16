@@ -8,6 +8,8 @@ use App\Models\FeeChallan;
 use App\Models\User;
 use App\Services\ChallanService;
 use App\Models\ApplicationDocument;
+use App\Notifications\ApplicationAcceptedNotification;
+use App\Notifications\ApplicationRejectedNotification;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,7 +88,8 @@ class AdminController extends Controller
             });
         }
 
-        $applications = $query->orderByDesc('created_at')->paginate(20);
+        $perPage = min((int) $request->input('per_page', 20), 50);
+        $applications = $query->orderByDesc('created_at')->paginate($perPage);
 
         return $this->success(
             data: ['applications' => $applications],
@@ -112,9 +115,9 @@ class AdminController extends Controller
     {
         $application = Application::findOrFail($id);
 
-        if (! $application->status === 'submitted') {
+        if ($application->status !== 'submitted') {
             return $this->error(
-                message: 'Only submitted or under-review applications can be accepted.',
+                message: 'Only submitted applications can be accepted.',
                 errorCode: 'VALIDATION_ERROR',
                 status: 422,
             );
@@ -126,6 +129,9 @@ class AdminController extends Controller
             'reviewed_by' => $request->user()->id,
             'admin_notes' => $request->input('admin_notes'),
         ]);
+
+        $application->load(['program', 'branch', 'user']);
+        $application->user->notify(new ApplicationAcceptedNotification($application));
 
         return $this->success(
             data: ['application' => $application->fresh()],
@@ -141,9 +147,9 @@ class AdminController extends Controller
 
         $application = Application::findOrFail($id);
 
-        if (! $application->status === 'submitted') {
+        if ($application->status !== 'submitted') {
             return $this->error(
-                message: 'Only submitted or under-review applications can be rejected.',
+                message: 'Only submitted applications can be rejected.',
                 errorCode: 'VALIDATION_ERROR',
                 status: 422,
             );
@@ -155,6 +161,9 @@ class AdminController extends Controller
             'reviewed_by' => $request->user()->id,
             'admin_notes' => $request->input('admin_notes'),
         ]);
+
+        $application->load(['program', 'user']);
+        $application->user->notify(new ApplicationRejectedNotification($application));
 
         return $this->success(
             data: ['application' => $application->fresh()],

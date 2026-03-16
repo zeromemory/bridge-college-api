@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Application;
 use App\Models\ApplicationDocument;
 use App\Models\User;
+use App\Notifications\ApplicationSubmittedNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -124,6 +125,9 @@ class ApplicationService
             'status' => 'submitted',
             'submitted_at' => now(),
         ]);
+
+        $application->load(['program', 'branch']);
+        $application->user->notify(new ApplicationSubmittedNotification($application));
 
         return $application;
     }
