@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AdmissionController;
+use App\Http\Controllers\Api\V1\Admin\AcademicSessionController;
+use App\Http\Controllers\Api\V1\Admin\ClassController;
+use App\Http\Controllers\Api\V1\Admin\SubjectController;
+use App\Http\Controllers\Api\V1\Admin\TeacherController;
 use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BranchController;
@@ -67,6 +71,43 @@ Route::prefix('v1')->group(function () {
             Route::get('/students', [AdminController::class, 'students']);
             Route::get('/students/{id}', [AdminController::class, 'showStudent']);
             Route::post('/students/{id}/toggle-status', [AdminController::class, 'toggleStudentStatus']);
+
+            // === LMS: Academic Sessions ===
+            Route::get('/academic-sessions', [AcademicSessionController::class, 'index']);
+            Route::post('/academic-sessions', [AcademicSessionController::class, 'store']);
+            Route::put('/academic-sessions/{session}', [AcademicSessionController::class, 'update']);
+            Route::post('/academic-sessions/{session}/activate', [AcademicSessionController::class, 'activate']);
+
+            // === LMS: Subjects ===
+            Route::get('/subjects', [SubjectController::class, 'index']);
+            Route::post('/subjects', [SubjectController::class, 'store']);
+            Route::put('/subjects/{subject}', [SubjectController::class, 'update']);
+            Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy']);
+
+            // === LMS: Program Subjects ===
+            Route::get('/programs/{program}/subjects', [SubjectController::class, 'programSubjects']);
+            Route::post('/programs/{program}/subjects', [SubjectController::class, 'syncProgramSubjects']);
+
+            // === LMS: Teachers ===
+            Route::get('/teachers', [TeacherController::class, 'index']);
+            Route::post('/teachers', [TeacherController::class, 'store']);
+            Route::get('/teachers/{teacher}', [TeacherController::class, 'show']);
+            Route::put('/teachers/{teacher}', [TeacherController::class, 'update']);
+            Route::post('/teachers/{teacher}/toggle-status', [TeacherController::class, 'toggleStatus']);
+
+            // === LMS: Classes ===
+            Route::get('/classes', [ClassController::class, 'index']);
+            Route::post('/classes', [ClassController::class, 'store']);
+            Route::get('/classes/{class}', [ClassController::class, 'show']);
+            Route::put('/classes/{class}', [ClassController::class, 'update']);
+            Route::delete('/classes/{class}', [ClassController::class, 'destroy']);
+
+            // === LMS: Class Teacher & Student Management ===
+            Route::post('/classes/{class}/assign-teacher', [ClassController::class, 'assignTeacher']);
+            Route::post('/classes/{class}/unassign-teacher', [ClassController::class, 'unassignTeacher']);
+            Route::get('/classes/{class}/students', [ClassController::class, 'students']);
+            Route::post('/classes/{class}/enroll', [ClassController::class, 'enrollStudent']);
+            Route::delete('/classes/{class}/unenroll/{studentId}', [ClassController::class, 'unenrollStudent']);
         });
     });
 });

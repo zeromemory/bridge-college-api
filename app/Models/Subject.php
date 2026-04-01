@@ -5,20 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Program extends Model
+class Subject extends Model
 {
     use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'name',
-        'slug',
-        'short_name',
-        'level',
+        'code',
         'description',
         'is_active',
         'sort_order',
@@ -34,24 +31,14 @@ class Program extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'short_name', 'level', 'is_active'])
+            ->logOnly(['name', 'code', 'description', 'is_active', 'sort_order'])
             ->logOnlyDirty();
     }
 
-    public function applications(): HasMany
+    public function programs(): BelongsToMany
     {
-        return $this->hasMany(Application::class);
-    }
-
-    public function subjects(): BelongsToMany
-    {
-        return $this->belongsToMany(Subject::class, 'program_subject')
+        return $this->belongsToMany(Program::class, 'program_subject')
             ->withPivot('is_elective')
             ->withTimestamps();
-    }
-
-    public function classes(): HasMany
-    {
-        return $this->hasMany(ClassRoom::class);
     }
 }

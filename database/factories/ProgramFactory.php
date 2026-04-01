@@ -14,13 +14,13 @@ class ProgramFactory extends Factory
     protected $model = Program::class;
 
     private static array $programs = [
-        ['name' => 'SSC-I (9th Class)', 'level' => 'ssc'],
-        ['name' => 'SSC-II (Matric)', 'level' => 'ssc'],
-        ['name' => 'Pre-Intermediate', 'level' => 'hssc'],
-        ['name' => 'HSSC-I (1st Year)', 'level' => 'hssc'],
-        ['name' => 'HSSC-II (2nd Year)', 'level' => 'hssc'],
-        ['name' => 'Computer Short Course', 'level' => 'short_course'],
-        ['name' => 'English Language Course', 'level' => 'short_course'],
+        ['name' => 'SSC-I General Science', 'short_name' => 'SSC-I', 'level' => 'ssc'],
+        ['name' => 'SSC-I Arts', 'short_name' => 'SSC-I', 'level' => 'ssc'],
+        ['name' => 'SSC-II General Science', 'short_name' => 'SSC-II', 'level' => 'ssc'],
+        ['name' => 'SSC-II Arts', 'short_name' => 'SSC-II', 'level' => 'ssc'],
+        ['name' => 'Pre-Intermediate', 'short_name' => 'Pre-Inter', 'level' => 'hssc'],
+        ['name' => 'HSSC-I Pre-Medical', 'short_name' => 'HSSC-I', 'level' => 'hssc'],
+        ['name' => 'HSSC-II Pre-Medical', 'short_name' => 'HSSC-II', 'level' => 'hssc'],
     ];
 
     private static int $index = 0;
@@ -33,6 +33,7 @@ class ProgramFactory extends Factory
         return [
             'name' => $program['name'],
             'slug' => Str::slug($program['name']),
+            'short_name' => $program['short_name'],
             'level' => $program['level'],
             'description' => fake()->sentence(),
             'is_active' => true,

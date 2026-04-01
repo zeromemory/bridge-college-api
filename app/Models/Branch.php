@@ -33,4 +33,9 @@ class Branch extends Model
     {
         return $this->hasMany(Application::class);
     }
+
+    public function classes(): HasMany
+    {
+        return $this->hasMany(ClassRoom::class);
+    }
 }
