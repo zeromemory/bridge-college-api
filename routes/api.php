@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ProgramController;
+use App\Http\Controllers\Api\V1\Student\StudentLmsController;
+use App\Http\Controllers\Api\V1\Teacher\ClassMaterialController;
+use App\Http\Controllers\Api\V1\Teacher\TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -94,6 +97,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/teachers/{teacher}', [TeacherController::class, 'show']);
             Route::put('/teachers/{teacher}', [TeacherController::class, 'update']);
             Route::post('/teachers/{teacher}/toggle-status', [TeacherController::class, 'toggleStatus']);
+            Route::post('/teachers/{teacher}/resend-setup', [TeacherController::class, 'resendSetup']);
 
             // === LMS: Classes ===
             Route::get('/classes', [ClassController::class, 'index']);
@@ -108,6 +112,23 @@ Route::prefix('v1')->group(function () {
             Route::get('/classes/{class}/students', [ClassController::class, 'students']);
             Route::post('/classes/{class}/enroll', [ClassController::class, 'enrollStudent']);
             Route::delete('/classes/{class}/unenroll/{studentId}', [ClassController::class, 'unenrollStudent']);
+        });
+
+        // === LMS: Teacher dashboard ===
+        Route::middleware('teacher')->prefix('teacher')->group(function () {
+            Route::get('/classes', [TeacherDashboardController::class, 'myClasses']);
+            Route::get('/classes/{class}', [TeacherDashboardController::class, 'classDetail']);
+            Route::get('/classes/{class}/students', [TeacherDashboardController::class, 'classStudents']);
+
+            Route::get('/classes/{class}/materials', [ClassMaterialController::class, 'index']);
+            Route::post('/classes/{class}/materials', [ClassMaterialController::class, 'store']);
+            Route::delete('/classes/{class}/materials/{material}', [ClassMaterialController::class, 'destroy']);
+        });
+
+        // === LMS: Student LMS view ===
+        Route::middleware('student')->prefix('student/lms')->group(function () {
+            Route::get('/my-class', [StudentLmsController::class, 'myClass']);
+            Route::get('/materials/{material}/download', [StudentLmsController::class, 'downloadMaterial']);
         });
     });
 });

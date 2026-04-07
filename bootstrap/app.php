@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register middleware aliases
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'teacher' => \App\Http\Middleware\TeacherMiddleware::class,
+            'student' => \App\Http\Middleware\StudentMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -77,6 +80,18 @@ return Application::configure(basePath: dirname(__DIR__))
                     'error_code' => 'UNAUTHENTICATED',
                     'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
                 ], 401);
+            }
+        });
+
+        // Handle authorization failures (policies, service-layer guards) for API routes
+        $exceptions->render(function (AuthorizationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage() ?: 'This action is unauthorized.',
+                    'error_code' => 'UNAUTHORIZED',
+                    'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
+                ], 403);
             }
         });
     })->create();

@@ -18,7 +18,7 @@ class ClassRoomFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => 'Section ' . fake()->randomLetter(),
+            'name' => 'Section ' . fake()->unique()->lexify('????'),
             'program_id' => Program::factory(),
             'branch_id' => Branch::factory(),
             'academic_session_id' => AcademicSession::factory(),

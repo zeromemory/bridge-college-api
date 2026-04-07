@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use App\Notifications\TeacherAccountSetupNotification;
+use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
@@ -26,14 +28,15 @@ it('lists all teachers', function () {
         ->assertJsonCount(3, 'data');
 });
 
-// ── Create ──
+// ── Create (magic-link setup flow) ──
 
-it('creates a teacher', function () {
+it('creates a teacher and sends a setup notification (no plain password supplied)', function () {
+    Notification::fake();
+
     $response = $this->actingAs($this->admin)->postJson('/api/v1/admin/teachers', [
         'name' => 'Mr. Ahmad',
         'email' => 'ahmad@bci.edu.pk',
         'cnic' => '35201-1234567-1',
-        'password' => 'password123',
     ]);
 
     $response->assertCreated()
@@ -44,13 +47,18 @@ it('creates a teacher', function () {
         'email' => 'ahmad@bci.edu.pk',
         'role' => 'teacher',
     ]);
+
+    $teacher = User::where('email', 'ahmad@bci.edu.pk')->firstOrFail();
+    expect($teacher->password_set_at)->toBeNull();
+
+    Notification::assertSentTo($teacher, TeacherAccountSetupNotification::class);
 });
 
 it('validates required fields when creating teacher', function () {
     $response = $this->actingAs($this->admin)->postJson('/api/v1/admin/teachers', []);
 
     $response->assertUnprocessable()
-        ->assertJsonValidationErrors(['name', 'email', 'password']);
+        ->assertJsonValidationErrors(['name', 'email', 'cnic']);
 });
 
 it('validates unique email for teacher', function () {
@@ -59,7 +67,7 @@ it('validates unique email for teacher', function () {
     $response = $this->actingAs($this->admin)->postJson('/api/v1/admin/teachers', [
         'name' => 'Another Teacher',
         'email' => 'taken@bci.edu.pk',
-        'password' => 'password123',
+        'cnic' => '35201-1111111-1',
     ]);
 
     $response->assertUnprocessable()

@@ -95,4 +95,29 @@ class TeacherController extends Controller
             message: $teacher->is_active ? 'Teacher activated' : 'Teacher deactivated',
         );
     }
+
+    public function resendSetup(User $teacher): JsonResponse
+    {
+        if (!$teacher->isTeacher()) {
+            return $this->error(
+                message: 'User is not a teacher',
+                errorCode: 'NOT_FOUND',
+                status: 404,
+            );
+        }
+
+        try {
+            $this->service->resendSetupLink($teacher);
+        } catch (\DomainException $e) {
+            return $this->error(
+                message: $e->getMessage(),
+                errorCode: 'DUPLICATE_ENTRY',
+                status: 409,
+            );
+        }
+
+        return $this->success(
+            message: 'Setup link resent to teacher email.',
+        );
+    }
 }

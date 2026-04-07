@@ -29,6 +29,7 @@ class UserFactory extends Factory
             'role' => 'student',
             'is_active' => true,
             'email_verified_at' => now(),
+            'password_set_at' => now(),
             'remember_token' => Str::random(10),
         ];
     }

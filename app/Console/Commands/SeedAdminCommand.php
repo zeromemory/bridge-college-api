@@ -30,7 +30,10 @@ class SeedAdminCommand extends Command
             'role' => 'admin',
             'is_active' => true,
         ]);
-        $admin->forceFill(['email_verified_at' => now()])->save();
+        $admin->forceFill([
+            'email_verified_at' => now(),
+            'password_set_at' => now(),
+        ])->save();
 
         $this->info("Admin created: {$admin->email} (ID: {$admin->id})");
         $this->table(

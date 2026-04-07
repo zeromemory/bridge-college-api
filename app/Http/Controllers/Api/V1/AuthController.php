@@ -170,6 +170,10 @@ class AuthController extends Controller
             function (User $user, string $password) {
                 $user->forceFill([
                     'password' => $password,
+                    // Marks both forgot-password and teacher-setup flows as
+                    // having a user-chosen password. Harmless for existing
+                    // students/admins; required for the teacher magic-link flow.
+                    'password_set_at' => now(),
                 ])->setRememberToken(Str::random(60));
                 $user->save();
             }
@@ -181,9 +185,13 @@ class AuthController extends Controller
             );
         }
 
+        // Distinguish expired/invalid token from other validation failures
+        // so the frontend setup page can show recovery UX.
+        $isTokenError = in_array($status, [Password::INVALID_TOKEN, Password::INVALID_USER], true);
+
         return $this->error(
             message: __($status),
-            errorCode: 'VALIDATION_ERROR',
+            errorCode: $isTokenError ? 'INVALID_TOKEN' : 'VALIDATION_ERROR',
             status: 422,
         );
     }

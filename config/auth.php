@@ -94,7 +94,9 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            // 24 hours. Used for both the forgot-password flow and the
+            // teacher first-time account-setup magic link.
+            'expire' => 1440,
             'throttle' => 60,
         ],
     ],
