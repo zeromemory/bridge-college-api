@@ -163,6 +163,28 @@ class AuthController extends Controller
         );
     }
 
+    public function validateResetToken(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        // Non-enumerating: return the same error whether the user exists or
+        // the token is wrong/expired. We do NOT reveal which one failed.
+        if (!$user || !Password::broker()->tokenExists($user, $validated['token'])) {
+            return $this->error(
+                message: 'This link is invalid or has expired.',
+                errorCode: 'INVALID_TOKEN',
+                status: 422,
+            );
+        }
+
+        return $this->success(message: 'Token is valid.');
+    }
+
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
         $status = Password::reset(
@@ -174,6 +196,12 @@ class AuthController extends Controller
                     // having a user-chosen password. Harmless for existing
                     // students/admins; required for the teacher magic-link flow.
                     'password_set_at' => now(),
+                    // Clicking the reset/setup link in an email proves the user
+                    // owns that email, so we verify it here if it wasn't already.
+                    // This is critical for the teacher magic-link flow — admin
+                    // creates teachers without sending a separate verification
+                    // email, the setup link doubles as verification.
+                    'email_verified_at' => $user->email_verified_at ?? now(),
                 ])->setRememberToken(Str::random(60));
                 $user->save();
             }

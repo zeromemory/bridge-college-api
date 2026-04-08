@@ -38,6 +38,8 @@ Route::prefix('v1')->group(function () {
         ->middleware('throttle:3,1');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])
         ->middleware('throttle:3,1');
+    Route::post('/validate-reset-token', [AuthController::class, 'validateResetToken'])
+        ->middleware('throttle:10,1');
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
