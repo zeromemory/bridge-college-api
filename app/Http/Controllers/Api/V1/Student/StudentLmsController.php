@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassMaterial;
+use App\Services\AttendanceService;
 use App\Services\StudentLmsService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class StudentLmsController extends Controller
 
     public function __construct(
         private readonly StudentLmsService $service,
+        private readonly AttendanceService $attendanceService,
     ) {}
 
     public function myClass(Request $request): JsonResponse
@@ -58,6 +60,37 @@ class StudentLmsController extends Controller
             $material->file_path,
             $material->file_name,
             ['Content-Type' => $material->mime_type ?? 'application/octet-stream'],
+        );
+    }
+
+    /**
+     * Student's own attendance records + overall stats.
+     */
+    public function myAttendance(Request $request): JsonResponse
+    {
+        return $this->success(
+            data: $this->attendanceService->getStudentAttendance($request->user()),
+            message: 'Attendance retrieved',
+        );
+    }
+
+    /**
+     * Student's monthly attendance breakdown.
+     */
+    public function monthlyAttendance(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'month' => ['required', 'integer', 'min:1', 'max:12'],
+        ]);
+
+        return $this->success(
+            data: $this->attendanceService->getStudentMonthlyAttendance(
+                $request->user(),
+                (int) $validated['year'],
+                (int) $validated['month'],
+            ),
+            message: 'Monthly attendance retrieved',
         );
     }
 }

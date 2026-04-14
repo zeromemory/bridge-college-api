@@ -69,4 +69,9 @@ class ClassRoom extends Model
     {
         return $this->hasMany(Enrollment::class, 'class_id');
     }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'class_id');
+    }
 }

@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ProgramController;
 use App\Http\Controllers\Api\V1\Student\StudentLmsController;
+use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Api\V1\Teacher\AttendanceController as TeacherAttendanceController;
 use App\Http\Controllers\Api\V1\Teacher\ClassMaterialController;
 use App\Http\Controllers\Api\V1\Teacher\TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -114,6 +116,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/classes/{class}/students', [ClassController::class, 'students']);
             Route::post('/classes/{class}/enroll', [ClassController::class, 'enrollStudent']);
             Route::delete('/classes/{class}/unenroll/{studentId}', [ClassController::class, 'unenrollStudent']);
+
+            // === LMS: Admin Attendance ===
+            Route::get('/classes/{class}/attendance', [AdminAttendanceController::class, 'index']);
+            Route::post('/classes/{class}/attendance', [AdminAttendanceController::class, 'mark']);
+            Route::get('/classes/{class}/attendance/monthly', [AdminAttendanceController::class, 'monthly']);
         });
 
         // === LMS: Teacher dashboard ===
@@ -125,12 +132,21 @@ Route::prefix('v1')->group(function () {
             Route::get('/classes/{class}/materials', [ClassMaterialController::class, 'index']);
             Route::post('/classes/{class}/materials', [ClassMaterialController::class, 'store']);
             Route::delete('/classes/{class}/materials/{material}', [ClassMaterialController::class, 'destroy']);
+
+            // === LMS: Teacher Attendance ===
+            Route::post('/classes/{class}/attendance', [TeacherAttendanceController::class, 'mark']);
+            Route::get('/classes/{class}/attendance', [TeacherAttendanceController::class, 'index']);
+            Route::get('/classes/{class}/attendance/history', [TeacherAttendanceController::class, 'history']);
         });
 
         // === LMS: Student LMS view ===
         Route::middleware('student')->prefix('student/lms')->group(function () {
             Route::get('/my-class', [StudentLmsController::class, 'myClass']);
             Route::get('/materials/{material}/download', [StudentLmsController::class, 'downloadMaterial']);
+
+            // === LMS: Student Attendance ===
+            Route::get('/attendance', [StudentLmsController::class, 'myAttendance']);
+            Route::get('/attendance/monthly', [StudentLmsController::class, 'monthlyAttendance']);
         });
     });
 });
