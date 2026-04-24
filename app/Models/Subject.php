@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -40,5 +41,10 @@ class Subject extends Model
         return $this->belongsToMany(Program::class, 'program_subject')
             ->withPivot('is_elective')
             ->withTimestamps();
+    }
+
+    public function assessments(): HasMany
+    {
+        return $this->hasMany(Assessment::class);
     }
 }

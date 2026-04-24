@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Student;
 use App\Http\Controllers\Controller;
 use App\Models\ClassMaterial;
 use App\Services\AttendanceService;
+use App\Services\GradebookService;
 use App\Services\StudentLmsService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,7 @@ class StudentLmsController extends Controller
     public function __construct(
         private readonly StudentLmsService $service,
         private readonly AttendanceService $attendanceService,
+        private readonly GradebookService $gradebookService,
     ) {}
 
     public function myClass(Request $request): JsonResponse
@@ -91,6 +93,38 @@ class StudentLmsController extends Controller
                 (int) $validated['month'],
             ),
             message: 'Monthly attendance retrieved',
+        );
+    }
+
+    /**
+     * Student's published grades grouped by subject.
+     */
+    public function myGrades(Request $request): JsonResponse
+    {
+        return $this->success(
+            data: $this->gradebookService->getMyGrades($request->user()),
+            message: 'Grades retrieved',
+        );
+    }
+
+    /**
+     * Student's published grades filtered by assessment type.
+     */
+    public function myGradesByType(Request $request, string $type): JsonResponse
+    {
+        $validTypes = ['class_test', 'assignment', 'monthly_assessment', 'quarterly_mock_exam', 'final_exam'];
+
+        if (! in_array($type, $validTypes)) {
+            return $this->error(
+                message: 'Invalid assessment type.',
+                errorCode: 'VALIDATION_ERROR',
+                status: 422,
+            );
+        }
+
+        return $this->success(
+            data: $this->gradebookService->getMyGradesByType($request->user(), $type),
+            message: 'Grades retrieved',
         );
     }
 }

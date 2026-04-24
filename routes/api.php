@@ -12,7 +12,9 @@ use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ProgramController;
 use App\Http\Controllers\Api\V1\Student\StudentLmsController;
 use App\Http\Controllers\Api\V1\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Api\V1\Admin\GradebookController as AdminGradebookController;
 use App\Http\Controllers\Api\V1\Teacher\AttendanceController as TeacherAttendanceController;
+use App\Http\Controllers\Api\V1\Teacher\GradebookController as TeacherGradebookController;
 use App\Http\Controllers\Api\V1\Teacher\ClassMaterialController;
 use App\Http\Controllers\Api\V1\Teacher\TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -121,6 +123,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/classes/{class}/attendance', [AdminAttendanceController::class, 'index']);
             Route::post('/classes/{class}/attendance', [AdminAttendanceController::class, 'mark']);
             Route::get('/classes/{class}/attendance/monthly', [AdminAttendanceController::class, 'monthly']);
+
+            // === LMS: Admin Gradebook ===
+            Route::get('/classes/{class}/results', [AdminGradebookController::class, 'classResults']);
+            Route::get('/classes/{class}/subjects/{subject}/results', [AdminGradebookController::class, 'subjectResults']);
+            Route::get('/students/{student}/results', [AdminGradebookController::class, 'studentResults']);
         });
 
         // === LMS: Teacher dashboard ===
@@ -137,6 +144,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/classes/{class}/attendance', [TeacherAttendanceController::class, 'mark']);
             Route::get('/classes/{class}/attendance', [TeacherAttendanceController::class, 'index']);
             Route::get('/classes/{class}/attendance/history', [TeacherAttendanceController::class, 'history']);
+
+            // === LMS: Teacher Gradebook ===
+            Route::get('/classes/{class}/assessments', [TeacherGradebookController::class, 'index']);
+            Route::post('/classes/{class}/assessments', [TeacherGradebookController::class, 'store']);
+            Route::get('/assessments/{assessment}', [TeacherGradebookController::class, 'show']);
+            Route::put('/assessments/{assessment}', [TeacherGradebookController::class, 'update']);
+            Route::delete('/assessments/{assessment}', [TeacherGradebookController::class, 'destroy']);
+            Route::post('/assessments/{assessment}/publish', [TeacherGradebookController::class, 'publish']);
+            Route::post('/assessments/{assessment}/unpublish', [TeacherGradebookController::class, 'unpublish']);
+            Route::post('/assessments/{assessment}/marks', [TeacherGradebookController::class, 'saveMarks']);
+            Route::get('/classes/{class}/students/{student}/grades', [TeacherGradebookController::class, 'studentSummary']);
         });
 
         // === LMS: Student LMS view ===
@@ -147,6 +165,10 @@ Route::prefix('v1')->group(function () {
             // === LMS: Student Attendance ===
             Route::get('/attendance', [StudentLmsController::class, 'myAttendance']);
             Route::get('/attendance/monthly', [StudentLmsController::class, 'monthlyAttendance']);
+
+            // === LMS: Student Gradebook ===
+            Route::get('/grades', [StudentLmsController::class, 'myGrades']);
+            Route::get('/grades/{type}', [StudentLmsController::class, 'myGradesByType']);
         });
     });
 });
